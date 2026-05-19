@@ -42,6 +42,11 @@ function tagLabel(slug) {
   return tagToLabel.get(slug) || slug || '';
 }
 
+function cloudinaryFirstFrame(url) {
+  if (!url || !url.includes('cloudinary.com') || !url.includes('/video/upload/')) return null;
+  return url.replace(/\.(mp4|mov|webm|m4v|avi|mkv|3gp|ogv|wmv|flv)(\?.*)?$/i, '.jpg');
+}
+
 function getVisibleCount() {
   return window.innerWidth <= 600 ? 1 : 2;
 }
@@ -69,7 +74,13 @@ nextBtn.addEventListener('click', () => { if (currentIndex < getMaxIndex()) { cu
 window.addEventListener('resize', () => { currentIndex = Math.min(currentIndex, getMaxIndex()); updateTrack(); });
 
 function openBlogModal(item) {
-  blogModalCover.style.backgroundImage = item.coverUrl ? `url('${item.coverUrl}')` : '';
+  blogModalCover.innerHTML = '';
+  if (item.coverMediaType === 'video' && item.coverUrl) {
+    blogModalCover.style.backgroundImage = '';
+    blogModalCover.innerHTML = `<video src="${item.coverUrl}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;border-radius:18px 18px 0 0;display:block;"></video>`;
+  } else {
+    blogModalCover.style.backgroundImage = item.coverUrl ? `url('${item.coverUrl}')` : '';
+  }
   blogModalTag.textContent     = tagLabel(item.tag);
   blogModalTitle.textContent   = item.title;
   blogModalSummary.textContent = item.summary || '';
@@ -93,6 +104,8 @@ function closeBlogModal() {
   blogModal.classList.remove('open');
   blogModal.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
+  blogModalCover.innerHTML = '';
+  blogModalCover.style.backgroundImage = '';
 }
 
 blogModalClose.addEventListener('click', closeBlogModal);
@@ -100,8 +113,12 @@ blogModalBdrop.addEventListener('click', closeBlogModal);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeBlogModal(); });
 
 function buildInsightCard(item) {
-  const bgStyle = item.coverUrl
-    ? `style="background-image:url('${item.coverUrl}');background-size:cover;background-position:center;"`
+  let thumbUrl = item.coverUrl || '';
+  if (item.coverMediaType === 'video' && thumbUrl) {
+    thumbUrl = cloudinaryFirstFrame(thumbUrl) || thumbUrl;
+  }
+  const bgStyle = thumbUrl
+    ? `style="background-image:url('${thumbUrl}');background-size:cover;background-position:center;"`
     : '';
   return `<article class="insight-card" style="cursor:pointer;">
     <div class="insight-card__image" ${bgStyle}></div>

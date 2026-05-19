@@ -80,6 +80,9 @@ function updateStats() {
 function getImg(type, item) {
   if (type === 'images') return item.imageUrl || '';
   if (type === 'videos') return pickVideoThumb(item);
+  if (type === 'blogs' && item.coverMediaType === 'video' && item.coverUrl) {
+    return cloudinaryFirstFrame(item.coverUrl) || item.coverUrl;
+  }
   return item.coverUrl || '';
 }
 
@@ -131,6 +134,8 @@ function openDetailModal(type, item) {
     } else if (item.videoUrl) {
       detailMedia.innerHTML = `<video src="${item.videoUrl}" controls controlsList="nodownload" oncontextmenu="return false"></video>`;
     }
+  } else if (type === 'blogs' && item.coverMediaType === 'video' && item.coverUrl) {
+    detailMedia.innerHTML = `<video src="${item.coverUrl}" controls controlsList="nodownload" oncontextmenu="return false"></video>`;
   } else {
     const imgUrl = getImg(type, item);
     if (imgUrl) detailMedia.innerHTML = `<img src="${imgUrl}" alt="${item.title}" />`;

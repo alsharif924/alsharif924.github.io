@@ -94,17 +94,19 @@
 
       <form class="post-form" id="blogForm" novalidate>
 
-        <!-- COVER IMAGE -->
+        <!-- COVER MEDIA -->
         <div class="form-section">
-          <label class="form-label">Cover Image</label>
+          <label class="form-label">Cover Media <span class="optional">Optional</span></label>
           <div class="cover-upload" id="coverUpload">
-            <input type="file" id="coverInput" accept="image/*" hidden />
+            <input type="file" id="coverInput" accept="image/*,video/*" hidden />
+            <input type="hidden" id="coverMediaType" name="coverMediaType" value="image" />
             <div class="cover-upload__placeholder" id="coverPlaceholder">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              <span>Click to upload cover image</span>
-              <span class="cover-upload__hint">JPG, PNG, WEBP — 1200×630, up to 10 MB</span>
+              <span>Click to upload cover image or video</span>
+              <span class="cover-upload__hint">JPG, PNG, WEBP, MP4, MOV — up to 50 MB</span>
             </div>
             <img class="cover-upload__preview" id="coverPreview" alt="Cover preview" />
+            <video class="cover-upload__video-preview" id="coverVideoPreview" muted playsinline></video>
             <button type="button" class="cover-upload__remove" id="coverRemove" hidden>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               Remove
@@ -126,17 +128,27 @@
           <input type="hidden" id="selectedTag" name="tag" />
         </div>
 
+        <!-- ORIENTATION -->
+        <div class="form-section">
+          <label class="form-label">Orientation</label>
+          <div class="tag-selector" id="orientationSelector">
+            <button type="button" class="tag-btn" data-orientation="landscape">Landscape</button>
+            <button type="button" class="tag-btn" data-orientation="portrait">Portrait</button>
+          </div>
+          <input type="hidden" id="selectedOrientation" name="orientation" />
+        </div>
+
         <!-- SUMMARY -->
         <div class="form-section">
-          <label class="form-label" for="postSummary">Short Summary <span class="required">*</span></label>
-          <textarea class="form-textarea form-textarea--sm" id="postSummary" name="summary" placeholder="A 1–2 sentence description shown on the blog card." maxlength="200" required></textarea>
+          <label class="form-label" for="postSummary">Short Summary <span class="optional">Optional</span></label>
+          <textarea class="form-textarea form-textarea--sm" id="postSummary" name="summary" placeholder="A 1–2 sentence description shown on the blog card." maxlength="200"></textarea>
           <span class="char-count" id="summaryCount">0 / 200</span>
         </div>
 
         <!-- CONTENT -->
         <div class="form-section">
-          <label class="form-label" for="postContent">Full Content <span class="required">*</span></label>
-          <textarea class="form-textarea form-textarea--lg" id="postContent" name="content" placeholder="Write the full blog article here..." required></textarea>
+          <label class="form-label" for="postContent">Full Content <span class="optional">Optional</span></label>
+          <textarea class="form-textarea form-textarea--lg" id="postContent" name="content" placeholder="Write the full blog article here..."></textarea>
           <span class="char-count" id="contentCount">0 characters</span>
         </div>
 

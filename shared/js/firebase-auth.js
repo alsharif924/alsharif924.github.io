@@ -6,7 +6,7 @@ import {
   signInWithPopup,
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
-export const ALLOWED  = ['ali.s23ultra.1@gmail.com', 'faresayman12316@gmail.com'];
+export const ALLOWED  = ['ali.s23ultra.1@gmail.com', 'faresayman12316@gmail.com', 'ali.d.sh.2001@gmail.com'];
 export const LOGIN_URL = '/pages/manager/login/';
 export const DASH_URL  = '/pages/manager/dashboard/';
 
