@@ -87,7 +87,7 @@ function openModal(item) {
         allowfullscreen
       ></iframe>`;
     } else {
-      modalPlayer.innerHTML = `<video src="${videoUrl}" controls autoplay></video>`;
+      modalPlayer.innerHTML = `<video src="${videoUrl}" controls autoplay controlsList="nodownload" oncontextmenu="return false"></video>`;
     }
   } else {
     modalPlayer.innerHTML = `<p class="modal__player-label">No video source available.</p>`;

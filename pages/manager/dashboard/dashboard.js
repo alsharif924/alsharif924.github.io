@@ -129,7 +129,7 @@ function openDetailModal(type, item) {
     if (ytId) {
       detailMedia.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}" allow="autoplay;encrypted-media;fullscreen" allowfullscreen></iframe>`;
     } else if (item.videoUrl) {
-      detailMedia.innerHTML = `<video src="${item.videoUrl}" controls></video>`;
+      detailMedia.innerHTML = `<video src="${item.videoUrl}" controls controlsList="nodownload" oncontextmenu="return false"></video>`;
     }
   } else {
     const imgUrl = getImg(type, item);
