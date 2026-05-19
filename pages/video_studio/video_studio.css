@@ -141,3 +141,8 @@ html.theme-transitioning *, html.theme-transitioning *::before, html.theme-trans
 ::view-transition-old(root) { animation:none; z-index:1; }
 ::view-transition-new(root) { animation:vt-reveal 0.55s cubic-bezier(0.4,0,0.2,1) forwards; z-index:2; }
 @keyframes vt-reveal { from{clip-path:circle(0px at var(--vt-x,50%) var(--vt-y,50%));} to{clip-path:circle(200vmax at var(--vt-x,50%) var(--vt-y,50%));} }
+
+/* WHATSAPP FLOATING BUTTON */
+.wa-fab { position:fixed; bottom:24px; right:24px; z-index:999; width:56px; height:56px; border-radius:50%; background:#25d366; color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 16px rgba(37,211,102,.45); text-decoration:none; animation:wa-pulse 2.5s ease infinite; transition:transform .2s ease,box-shadow .2s ease; }
+.wa-fab:hover { transform:scale(1.1); box-shadow:0 6px 24px rgba(37,211,102,.6); animation:none; }
+@keyframes wa-pulse { 0%,100%{box-shadow:0 4px 16px rgba(37,211,102,.45),0 0 0 0 rgba(37,211,102,.4);} 50%{box-shadow:0 4px 16px rgba(37,211,102,.45),0 0 0 10px rgba(37,211,102,0);} }
