@@ -170,7 +170,7 @@
       '.lang-dropdown button:hover,.lang-option--active{background:var(--color-blue-light,#e8eef8)!important;color:var(--color-blue,#3b6bdc)!important;font-weight:600;}' +
       '[data-theme="dark"] .lang-dropdown button:hover,[data-theme="dark"] .lang-option--active{background:rgba(59,107,220,.2)!important;color:#7fb3ff!important;}' +
       /* ── RTL Layout Fixes ── */
-      '[dir="rtl"] .navbar__links{flex-direction:row-reverse;}' +
+      '@media(min-width:769px){[dir="rtl"] .navbar__links{flex-direction:row-reverse;}}' +
       '[dir="rtl"] .footer__left,[dir="rtl"] .footer__right{text-align:right;}' +
       '[dir="rtl"] .blog-modal__summary{border-left:none;border-right:3px solid #3b6bdc;padding-left:0;padding-right:12px;}' +
       '[dir="rtl"] .blog-modal__close,[dir="rtl"] .sys-modal__close,[dir="rtl"] .lightbox__close,[dir="rtl"] .modal__close{right:auto;left:14px;}' +
