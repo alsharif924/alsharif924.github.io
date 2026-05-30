@@ -1,22 +1,28 @@
 import { db } from '../../shared/js/firebase-config.js';
 import { collection, getDocs, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getCategories, renderFilterButtons, labelOf } from '../../shared/js/categories.js';
-import { getHomeSettings } from '../../shared/js/settings.js';
+import { getHomeSettings, getCachedHomeSettings } from '../../shared/js/settings.js';
 
-getHomeSettings().then(s => {
+function applyServiceCovers(s) {
+  if (!s) return;
   if (s.cover_image) {
     const el = document.getElementById('serviceCoverImage');
-    if (el) el.src = s.cover_image;
+    if (el && el.src !== s.cover_image) el.src = s.cover_image;
   }
   if (s.cover_video) {
     const el = document.getElementById('serviceCoverVideo');
-    if (el) el.src = s.cover_video;
+    if (el && el.src !== s.cover_video) el.src = s.cover_video;
   }
   if (s.cover_systems) {
     const el = document.getElementById('serviceCoverSystems');
-    if (el) el.src = s.cover_systems;
+    if (el && el.src !== s.cover_systems) el.src = s.cover_systems;
   }
-});
+}
+
+// Apply the last-known covers synchronously so the correct images show on first
+// paint (no flash of the hardcoded placeholders), then refresh from Firestore.
+applyServiceCovers(getCachedHomeSettings());
+getHomeSettings().then(applyServiceCovers);
 
 const track   = document.getElementById('insightsTrack');
 const prevBtn = document.getElementById('prevBtn');
