@@ -154,7 +154,14 @@ body {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.4s ease;
+  opacity: 0;
+  transition: transform 0.4s ease, opacity 0.35s ease;
+}
+
+/* Revealed by JS once the real cover image has loaded, so the neutral
+   container background shows while loading instead of a wrong placeholder. */
+.service-card__image img.is-loaded {
+  opacity: 1;
 }
 
 .service-card:hover .service-card__image img {

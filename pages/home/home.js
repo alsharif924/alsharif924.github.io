@@ -3,24 +3,29 @@ import { collection, getDocs, query, orderBy, limit } from 'https://www.gstatic.
 import { getCategories, renderFilterButtons, labelOf } from '../../shared/js/categories.js';
 import { getHomeSettings, getCachedHomeSettings } from '../../shared/js/settings.js';
 
-function applyServiceCovers(s) {
-  if (!s) return;
-  if (s.cover_image) {
-    const el = document.getElementById('serviceCoverImage');
-    if (el && el.src !== s.cover_image) el.src = s.cover_image;
+function setCover(id, url) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  // Fall back to the placeholder only when no cover is configured.
+  const next = url || el.dataset.fallback;
+  if (!next) return;
+  if (el.src.endsWith(next) || el.src === next) {
+    if (el.complete) el.classList.add('is-loaded');
+    return;
   }
-  if (s.cover_video) {
-    const el = document.getElementById('serviceCoverVideo');
-    if (el && el.src !== s.cover_video) el.src = s.cover_video;
-  }
-  if (s.cover_systems) {
-    const el = document.getElementById('serviceCoverSystems');
-    if (el && el.src !== s.cover_systems) el.src = s.cover_systems;
-  }
+  el.addEventListener('load', () => el.classList.add('is-loaded'), { once: true });
+  el.src = next;
 }
 
-// Apply the last-known covers synchronously so the correct images show on first
-// paint (no flash of the hardcoded placeholders), then refresh from Firestore.
+function applyServiceCovers(s) {
+  s = s || {};
+  setCover('serviceCoverImage', s.cover_image);
+  setCover('serviceCoverVideo', s.cover_video);
+  setCover('serviceCoverSystems', s.cover_systems);
+}
+
+// Apply the last-known covers from cache (the inline script in index.html may
+// already have done this on first paint), then refresh from Firestore.
 applyServiceCovers(getCachedHomeSettings());
 getHomeSettings().then(applyServiceCovers);
 

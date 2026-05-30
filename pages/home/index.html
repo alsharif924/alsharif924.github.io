@@ -48,7 +48,7 @@
 
       <a href="/pages/gallery/" class="service-card">
         <div class="service-card__image">
-          <img id="serviceCoverImage" src="../../assets/images/placeholders/image_thumnail.jpg" alt="AI Image Studio" />
+          <img id="serviceCoverImage" data-fallback="../../assets/images/placeholders/image_thumnail.jpg" alt="AI Image Studio" />
         </div>
         <div class="service-card__body">
           <span class="service-card__icon">
@@ -61,7 +61,7 @@
 
       <a href="/pages/video_studio/" class="service-card">
         <div class="service-card__image">
-          <img id="serviceCoverVideo" src="../../assets/images/placeholders/video_thumnail.jpg" alt="AI Video Studio" />
+          <img id="serviceCoverVideo" data-fallback="../../assets/images/placeholders/video_thumnail.jpg" alt="AI Video Studio" />
         </div>
         <div class="service-card__body">
           <span class="service-card__icon">
@@ -74,7 +74,7 @@
 
       <a href="/pages/smart_systems/" class="service-card">
         <div class="service-card__image">
-          <img id="serviceCoverSystems" src="../../assets/images/placeholders/system_thumnail.jpg" alt="Smart Systems & Websites" />
+          <img id="serviceCoverSystems" data-fallback="../../assets/images/placeholders/system_thumnail.jpg" alt="Smart Systems & Websites" />
         </div>
         <div class="service-card__body">
           <span class="service-card__icon">
@@ -87,18 +87,21 @@
 
     </div>
 
-    <!-- Apply cached cover images synchronously (before paint) to avoid the
-         flash of placeholder images while Firestore loads. home.js refreshes
-         these from the server afterwards. -->
+    <!-- Apply cached cover images synchronously (before paint) so repeat visits
+         show the correct image instantly. The <img> is hidden until its source
+         loads (see .is-loaded in CSS), so no wrong placeholder ever flashes.
+         home.js refreshes these from Firestore afterwards. -->
     <script>(function(){
-      try {
-        var s = JSON.parse(localStorage.getItem('homeSettings') || '{}');
-        var map = { serviceCoverImage: s.cover_image, serviceCoverVideo: s.cover_video, serviceCoverSystems: s.cover_systems };
-        Object.keys(map).forEach(function(id){
-          var el = document.getElementById(id);
-          if (el && map[id]) el.src = map[id];
-        });
-      } catch (e) {}
+      var s = {};
+      try { s = JSON.parse(localStorage.getItem('homeSettings') || '{}'); } catch (e) {}
+      var map = { serviceCoverImage: s.cover_image, serviceCoverVideo: s.cover_video, serviceCoverSystems: s.cover_systems };
+      Object.keys(map).forEach(function(id){
+        var el = document.getElementById(id);
+        if (!el || !map[id]) return;
+        if (el.complete && el.src === map[id]) { el.classList.add('is-loaded'); return; }
+        el.addEventListener('load', function(){ el.classList.add('is-loaded'); }, { once: true });
+        el.src = map[id];
+      });
     })();</script>
   </section>
 
