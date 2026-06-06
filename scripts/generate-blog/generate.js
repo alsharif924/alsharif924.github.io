@@ -15,6 +15,7 @@
 // Run directly:  node generate.js     (used by the daily cron + manual dispatch)
 // Or import generateAndStore() from poll.js for the manual-request queue.
 
+import { readFileSync } from 'node:fs';
 import admin from 'firebase-admin';
 import Anthropic from '@anthropic-ai/sdk';
 import { buildExclusionContext, isDuplicate, contentHash } from './dedupe.js';
@@ -25,11 +26,22 @@ const RECENT_LIMIT = 40;            // how many recent posts to dedupe against
 const MAX_PAUSE_CONTINUATIONS = 6;  // server-tool (web_search) loop continuations
 
 // ── Firebase Admin ────────────────────────────────────────────────────────────
+// Accepts the service account as EITHER inline JSON (FIREBASE_SERVICE_ACCOUNT,
+// used by GitHub Actions) OR a path to the JSON file (FIREBASE_SERVICE_ACCOUNT_FILE
+// or GOOGLE_APPLICATION_CREDENTIALS, convenient for local runs in any shell).
 export function initFirestore() {
   if (!admin.apps.length) {
-    const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
-    if (!raw) throw new Error('FIREBASE_SERVICE_ACCOUNT env var is missing.');
-    admin.initializeApp({ credential: admin.credential.cert(JSON.parse(raw)) });
+    const inline = process.env.FIREBASE_SERVICE_ACCOUNT;
+    const file = process.env.FIREBASE_SERVICE_ACCOUNT_FILE || process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    let serviceAccount;
+    if (inline) {
+      serviceAccount = JSON.parse(inline);
+    } else if (file) {
+      serviceAccount = JSON.parse(readFileSync(file, 'utf8'));
+    } else {
+      throw new Error('Set FIREBASE_SERVICE_ACCOUNT (inline JSON) or FIREBASE_SERVICE_ACCOUNT_FILE (path to the JSON file).');
+    }
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
   }
   return admin.firestore();
 }
