@@ -1,0 +1,54 @@
+rules_version = '2';
+
+// Firestore security rules for the Ali AlSharif website.
+//
+// IMPORTANT: the admin email list below MUST stay in sync with the ALLOWED array
+// in shared/js/firebase-auth.js. Both define who can manage content.
+//
+// The AI-blog generator (GitHub Actions) writes with the Firebase Admin SDK using
+// a service account. The Admin SDK BYPASSES these rules entirely, so it can create
+// `status: 'pending'` drafts even though the public can never read them.
+//
+// Deploy with:  firebase deploy --only firestore:rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email in [
+          'ali.s23ultra.1@gmail.com',
+          'faresayman12316@gmail.com',
+          'ali.d.sh.2001@gmail.com'
+        ];
+    }
+
+    // Blog posts. Public can read anything that is NOT a pending AI draft
+    // (published posts and legacy posts that have no `status` field).
+    // Pending drafts are visible only to admins. Only admins may write.
+    match /blogs/{id} {
+      allow read: if !('status' in resource.data)
+                  || resource.data.status != 'pending'
+                  || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Manual-generation request queue (dashboard -> GitHub Actions poller).
+    // Admin-only; never exposed publicly.
+    match /generationRequests/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // Public content: anyone can read, only admins can write.
+    match /images/{id}     { allow read: if true; allow write: if isAdmin(); }
+    match /videos/{id}     { allow read: if true; allow write: if isAdmin(); }
+    match /systems/{id}    { allow read: if true; allow write: if isAdmin(); }
+    match /categories/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /settings/{id}   { allow read: if true; allow write: if isAdmin(); }
+
+    // Deny everything else by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

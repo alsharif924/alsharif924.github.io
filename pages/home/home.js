@@ -171,9 +171,14 @@ async function loadInsights() {
   if (insightsFilters) {
     await renderFilterButtons(insightsFilters, 'blogs', { onChange: applyInsightFilter, allKey: 'blogs.filter.all' });
   }
-  const snap = await getDocs(query(collection(db, 'blogs'), orderBy('createdAt', 'desc'), limit(24)));
+  // Fetch extra, then drop pending AI drafts (legacy posts have no status -> shown).
+  // Security is enforced by Firestore rules; this filter is for display correctness.
+  const snap = await getDocs(query(collection(db, 'blogs'), orderBy('createdAt', 'desc'), limit(48)));
   if (!snap.empty) {
-    allInsights = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allInsights = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(d => d.status !== 'pending')
+      .slice(0, 24);
     renderTrack();
   } else {
     updateTrack();
