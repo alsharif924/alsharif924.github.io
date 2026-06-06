@@ -538,7 +538,7 @@ const aiBlogsRefresh = document.getElementById('aiBlogsRefresh');
 
 // Cloudflare Worker that verifies the admin and fires the GitHub workflow instantly.
 // Set this to your deployed Worker URL (e.g. https://ai-blog-trigger.<you>.workers.dev).
-const TRIGGER_WORKER_URL = 'https://ai-blog-trigger.alsharif924.workers.dev';
+const TRIGGER_WORKER_URL = 'https://ai-blog-trigger.ali-s23ultra-1.workers.dev';
 
 let aiPending = [];
 

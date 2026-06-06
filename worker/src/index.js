@@ -14,10 +14,12 @@
 // Vars (in wrangler.toml):
 //   FIREBASE_PROJECT_ID, GITHUB_OWNER, GITHUB_REPO, ALLOWED_EMAILS, ALLOWED_ORIGIN
 
-const GOOGLE_CERTS_URL = 'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
+// Google's public signing keys for Firebase ID tokens, in JWK form (so we can
+// verify with pure WebCrypto — no Node APIs, no compatibility flags).
+const GOOGLE_JWK_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 
-// Cache Google's signing certs per isolate (they rotate ~daily).
-let certCache = { certs: null, expires: 0 };
+// Cache the imported CryptoKeys per isolate (Google rotates them ~daily).
+let keyCache = { keys: null, expires: 0 };
 
 function corsHeaders(origin) {
   return {
@@ -48,18 +50,28 @@ function b64urlToString(s) {
   return new TextDecoder().decode(b64urlToBytes(s));
 }
 
-// ── Fetch Google's public signing certs (PEM per kid) ───────────────────────────
-async function getGoogleCerts() {
+// ── Fetch + import Google's public signing keys (JWK -> CryptoKey per kid) ───────
+async function getGoogleKeys() {
   const now = Date.now();
-  if (certCache.certs && certCache.expires > now) return certCache.certs;
-  const res = await fetch(GOOGLE_CERTS_URL);
-  const certs = await res.json();
+  if (keyCache.keys && keyCache.expires > now) return keyCache.keys;
+  const res = await fetch(GOOGLE_JWK_URL);
+  const { keys } = await res.json();
+  const imported = {};
+  for (const jwk of keys) {
+    imported[jwk.kid] = await crypto.subtle.importKey(
+      'jwk',
+      jwk,
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+  }
   // Respect cache-control max-age so we refresh when Google rotates keys.
   const cc = res.headers.get('cache-control') || '';
   const m = cc.match(/max-age=(\d+)/);
   const ttl = m ? parseInt(m[1], 10) * 1000 : 3600 * 1000;
-  certCache = { certs, expires: now + ttl };
-  return certs;
+  keyCache = { keys: imported, expires: now + ttl };
+  return imported;
 }
 
 // ── Verify a Firebase ID token (RS256, Google securetoken) ──────────────────────
@@ -76,28 +88,17 @@ async function verifyIdToken(token, projectId) {
   if (payload.exp <= now) throw new Error('Token expired');
   if (!payload.email) throw new Error('No email in token');
 
-  // Signature check.
-  const certs = await getGoogleCerts();
-  const pem = certs[header.kid];
-  if (!pem) throw new Error('Unknown signing key');
+  // Signature check (pure WebCrypto).
+  const keys = await getGoogleKeys();
+  const key = keys[header.kid];
+  if (!key) throw new Error('Unknown signing key');
 
-  const key = await importX509PublicKey(pem);
   const data = new TextEncoder().encode(parts[0] + '.' + parts[1]);
   const sig = b64urlToBytes(parts[2]);
   const ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, sig, data);
   if (!ok) throw new Error('Bad signature');
 
   return payload;
-}
-
-// Import the RSA public key from an X.509 PEM certificate.
-async function importX509PublicKey(pem) {
-  const b64 = pem.replace(/-----BEGIN CERTIFICATE-----/, '')
-                 .replace(/-----END CERTIFICATE-----/, '')
-                 .replace(/[\r\n\s]/g, '');
-  const der = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-  const cert = new X509Certificate(der);
-  return cert.publicKey;
 }
 
 export default {
