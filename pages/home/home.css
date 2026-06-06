@@ -362,6 +362,38 @@ body {
 .insight-card__image--3 { background: linear-gradient(135deg, #1a1a3e 0%, #2d2d6e 100%); }
 .insight-card__image--4 { background: linear-gradient(135deg, #3e1a1a 0%, #6e2d2d 100%); }
 
+/* Branded gradients for cover-less posts (navy/blue family + accents). */
+.insight-card__image--grad1 { background: linear-gradient(135deg, #0d1b3e 0%, #3b6bdc 100%); }
+.insight-card__image--grad2 { background: linear-gradient(135deg, #102a52 0%, #2aabab 100%); }
+.insight-card__image--grad3 { background: linear-gradient(135deg, #1a1a3e 0%, #6b3bdc 100%); }
+.insight-card__image--grad4 { background: linear-gradient(135deg, #0d2a3e 0%, #1a4a6e 100%); }
+
+/* No-cover overlay: centered icon + category tag, with a subtle dotted texture. */
+.insight-card__nocover {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.95);
+  position: relative;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+.insight-card__nocover-icon svg { width: 34px; height: 34px; opacity: 0.92; }
+.insight-card__nocover-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(2px);
+}
+
 .insight-card__body { padding: 18px 20px 22px; }
 
 .insight-card__tag {

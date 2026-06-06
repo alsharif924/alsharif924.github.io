@@ -87,6 +87,28 @@ function getImg(type, item) {
   return item.coverUrl || '';
 }
 
+// Branded gradient placeholder for blog posts that have no cover photo
+// (every AI post, and cover-less manual posts). Mirrors the public home style.
+const NO_COVER_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z"/><path d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9L18 14z"/></svg>`;
+
+function gradientIndex(item) {
+  const s = `${item.tag || ''}${item.title || ''}`;
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return (h % 4) + 1;
+}
+
+function blogCoverHtml(item, ratioClass, tagLabel) {
+  const url = getImg('blogs', item);
+  if (url) {
+    return `<img class="panel-item__img ${ratioClass}" src="${url}" alt="${item.title}" loading="lazy" />`;
+  }
+  return `<div class="panel-item__img ${ratioClass} panel-item__nocover panel-item__nocover--grad${gradientIndex(item)}">
+    <span class="panel-item__nocover-icon">${NO_COVER_ICON}</span>
+    <span class="panel-item__nocover-tag">${tagLabel || ''}</span>
+  </div>`;
+}
+
 function buildCard(type, item) {
   const img = getImg(type, item);
   const trashBtn = `<button class="panel-item__trash" data-id="${item.id}" aria-label="Delete ${item.title}">
@@ -97,7 +119,7 @@ function buildCard(type, item) {
 
   if (type === 'blogs') {
     return `<div class="panel-item" style="cursor:pointer;">
-      <img class="panel-item__img panel-item__img--wide" src="${img}" alt="${item.title}" loading="lazy" />
+      ${blogCoverHtml(item, 'panel-item__img--wide', tagLabel)}
       <div class="panel-item__body">
         <span class="panel-item__tag">${tagLabel}</span>
         <p class="panel-item__title">${item.title}</p>
@@ -139,7 +161,15 @@ function openDetailModal(type, item) {
     detailMedia.innerHTML = `<video src="${item.coverUrl}" controls controlsList="nodownload" oncontextmenu="return false"></video>`;
   } else {
     const imgUrl = getImg(type, item);
-    if (imgUrl) detailMedia.innerHTML = `<img src="${imgUrl}" alt="${item.title}" />`;
+    if (imgUrl) {
+      detailMedia.innerHTML = `<img src="${imgUrl}" alt="${item.title}" />`;
+    } else if (type === 'blogs') {
+      const label = tagLabelMap.blogs?.get(item.tag) || item.tag || '';
+      detailMedia.innerHTML = `<div class="detail-modal__nocover panel-item__nocover--grad${gradientIndex(item)}">
+        <span class="panel-item__nocover-icon">${NO_COVER_ICON}</span>
+        <span class="panel-item__nocover-tag">${escapeHtml(label)}</span>
+      </div>`;
+    }
   }
 
   const tagLabel = tagLabelMap[type]?.get(item.tag) || item.tag || '';
