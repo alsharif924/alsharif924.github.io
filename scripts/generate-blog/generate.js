@@ -52,10 +52,23 @@ async function fetchRecentBlogs(db) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-async function fetchBlogCategorySlugs(db) {
+async function fetchBlogCategories(db) {
   const snap = await db.collection('categories').where('type', '==', 'blogs').get();
-  const slugs = snap.docs.map(d => d.data().slug).filter(Boolean);
-  return slugs.length ? slugs : ['AI IMAGE', 'AI VIDEO', 'SMART SYSTEMS'];
+  const cats = snap.docs.map(d => d.data()).filter(c => c.slug);
+  if (cats.length) return cats;
+  return [
+    { slug: 'AI IMAGE', label_en: 'AI Image' },
+    { slug: 'AI VIDEO', label_en: 'AI Video' },
+    { slug: 'SMART SYSTEMS', label_en: 'Smart Systems' },
+  ];
+}
+
+// Find the "AI News" category if one exists (match on slug or English label,
+// tolerant of casing/spacing/dashes). Daily news posts should default here.
+function findNewsTag(cats) {
+  const isNews = s => /news/i.test(String(s || ''));
+  const hit = cats.find(c => isNews(c.slug) || isNews(c.label_en));
+  return hit ? hit.slug : null;
 }
 
 // ── Call Claude with web search, return parsed JSON ─────────────────────────────
@@ -79,10 +92,10 @@ function parseJsonFromText(text) {
   return JSON.parse(t.slice(first, last + 1));
 }
 
-async function generatePost(anthropic, todayISO, categorySlugs, exclusions) {
+async function generatePost(anthropic, todayISO, categorySlugs, exclusions, preferredTag) {
   const tools = [{ type: 'web_search_20260209', name: 'web_search' }];
   const system = [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }];
-  const userMessage = buildUserMessage(todayISO, categorySlugs, exclusions);
+  const userMessage = buildUserMessage(todayISO, categorySlugs, exclusions, preferredTag);
 
   let messages = [{ role: 'user', content: userMessage }];
   let response;
@@ -117,13 +130,15 @@ async function generatePost(anthropic, todayISO, categorySlugs, exclusions) {
 }
 
 // ── Validation ──────────────────────────────────────────────────────────────────
-function validatePost(post, categorySlugs) {
+function validatePost(post, categorySlugs, preferredTag) {
   const errs = [];
   if (!post.title || typeof post.title !== 'string') errs.push('missing title');
   else if (post.title.length > 120) post.title = post.title.slice(0, 120).trim();
   if (post.summary && post.summary.length > 200) post.summary = post.summary.slice(0, 200).trim();
   if (!post.content || typeof post.content !== 'string') errs.push('missing content');
-  if (!post.tag || !categorySlugs.includes(post.tag)) post.tag = categorySlugs[0];
+  // Default to the preferred (AI News) tag when the model omits/invents one.
+  const fallbackTag = (preferredTag && categorySlugs.includes(preferredTag)) ? preferredTag : categorySlugs[0];
+  if (!post.tag || !categorySlugs.includes(post.tag)) post.tag = fallbackTag;
   if (!Array.isArray(post.sourceHeadlines)) post.sourceHeadlines = [];
   if (!Array.isArray(post.sourceUrls)) post.sourceUrls = [];
   if (errs.length) throw new Error(`Invalid post: ${errs.join(', ')}`);
@@ -147,23 +162,25 @@ export async function generateAndStore(db) {
   const anthropic = new Anthropic({ apiKey });
 
   const todayISO = new Date().toISOString().slice(0, 10);
-  const [recent, categorySlugs] = await Promise.all([
+  const [recent, categories] = await Promise.all([
     fetchRecentBlogs(db),
-    fetchBlogCategorySlugs(db),
+    fetchBlogCategories(db),
   ]);
+  const categorySlugs = categories.map(c => c.slug);
+  const preferredTag = findNewsTag(categories); // null if no "AI News" category exists yet
   const exclusions = buildExclusionContext(recent);
 
   // Try once, then retry once with the duplicate explicitly excluded.
   let post;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const raw = await generatePost(anthropic, todayISO, categorySlugs, exclusions);
+    const raw = await generatePost(anthropic, todayISO, categorySlugs, exclusions, preferredTag);
 
     if (raw && raw.skip) {
       console.log(`No novel news today — skipping. Reason: ${raw.reason || 'unspecified'}`);
       return { skipped: true, reason: raw.reason };
     }
 
-    post = validatePost(raw, categorySlugs);
+    post = validatePost(raw, categorySlugs, preferredTag);
     const dup = isDuplicate(post, recent);
     if (!dup.isDuplicate) break;
 
