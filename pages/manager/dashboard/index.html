@@ -234,6 +234,32 @@
         <div class="cover-toast" id="coverToast" hidden></div>
       </section>
 
+      <!-- AI BLOGS SECTION -->
+      <section class="ai-blogs-section" id="aiBlogsSection">
+        <div class="ai-blogs-section__header">
+          <div>
+            <h2 class="ai-blogs-section__title">AI Blogs</h2>
+            <p class="ai-blogs-section__desc">Review AI-generated drafts before they go live.</p>
+          </div>
+          <div class="ai-blogs-section__actions">
+            <button class="btn btn--ghost ai-blogs__refresh" id="aiBlogsRefresh" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+              Refresh
+            </button>
+            <button class="btn btn--primary" id="aiGenerateNow" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Generate now
+            </button>
+          </div>
+        </div>
+        <div class="ai-blogs__status" id="aiBlogsStatus" hidden></div>
+        <div class="ai-blogs__grid" id="aiBlogsGrid"></div>
+        <div class="ai-blogs__empty" id="aiBlogsEmpty" hidden>
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <p>No AI drafts awaiting review.</p>
+        </div>
+      </section>
+
       <div class="quick-actions">
         <h2 class="quick-actions__title">Quick Actions</h2>
         <div class="quick-actions__grid">

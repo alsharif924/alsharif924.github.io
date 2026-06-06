@@ -1,0 +1,55 @@
+name: AI Blog Generator
+
+# Generates the daily AI-news blog post (and processes manual "Generate now" /
+# "Regenerate" requests from the dashboard). Runs server-side so the AI key and
+# Firebase service account stay in GitHub Actions secrets — never in the static site.
+#
+# Required repo secrets (Settings -> Secrets and variables -> Actions):
+#   AI_API_KEY                 Anthropic API key
+#   FIREBASE_SERVICE_ACCOUNT   Firebase service-account JSON (paste the whole file)
+
+on:
+  schedule:
+    # Daily at 06:00 UTC. Adjust to your preferred local morning.
+    - cron: '0 6 * * *'
+    # Every 5 minutes: pick up manual "Generate now" / "Regenerate" requests.
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}   # manual run from the Actions tab
+
+# Avoid overlapping runs writing posts at the same time.
+concurrency:
+  group: ai-blog
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: scripts/generate-blog
+        run: npm ci || npm install
+
+      # The 5-minute schedule only drains the manual-request queue (cheap, no AI
+      # call unless a request exists). The daily schedule + manual dispatch write
+      # a fresh post.
+      - name: Process manual requests (every 5 min)
+        if: github.event.schedule == '*/5 * * * *'
+        working-directory: scripts/generate-blog
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node poll.js
+
+      - name: Generate daily post
+        if: github.event.schedule != '*/5 * * * *'
+        working-directory: scripts/generate-blog
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node generate.js

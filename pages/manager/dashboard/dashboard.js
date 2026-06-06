@@ -1,6 +1,7 @@
 import { db } from '../../../shared/js/firebase-config.js';
 import { requireAuth, signOut } from '../../../shared/js/firebase-auth.js';
-import { collection, getDocs, deleteDoc, doc, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { collection, getDocs, deleteDoc, doc, query, orderBy, where, addDoc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { auth } from '../../../shared/js/firebase-auth.js';
 import {
   seedIfEmpty, getCategories, createCategory, updateCategory, deleteCategory,
   countItemsUsingCategory,
@@ -259,6 +260,13 @@ delConfirm.addEventListener('click', async () => {
       await refreshTagLabelMaps();
       await renderCategoryList();
       if (activeType) renderPanel(activeType);
+    } else if (pendingDelete.kind === 'aiPending') {
+      const { id } = pendingDelete;
+      await deleteDoc(doc(db, 'blogs', id));
+      aiPending = aiPending.filter(item => item.id !== id);
+      pendingDelete = null;
+      delModal.hidden = true;
+      renderAiBlogs();
     } else {
       const { type, id } = pendingDelete;
       await deleteDoc(doc(db, type, id));
@@ -297,12 +305,16 @@ async function loadAll() {
   await Promise.all(types.map(async type => {
     const q = query(collection(db, type), orderBy('createdAt', 'desc'));
     const snap = await getDocs(q);
-    data[type] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Pending AI drafts live in the AI Blogs section, not the main Blog Posts panel.
+    if (type === 'blogs') items = items.filter(item => item.status !== 'pending');
+    data[type] = items;
   }));
   updateStats();
   if (activeType) renderPanel(activeType);
   await initCategoriesSection();
   await initCoverPhotosSection();
+  await initAiBlogsSection();
 }
 
 /* ---------- CATEGORIES SECTION ---------- */
@@ -514,6 +526,177 @@ async function initCoverPhotosSection() {
       }
     });
   });
+}
+
+/* ---------- AI BLOGS SECTION ---------- */
+
+const aiBlogsGrid    = document.getElementById('aiBlogsGrid');
+const aiBlogsEmpty   = document.getElementById('aiBlogsEmpty');
+const aiBlogsStatus  = document.getElementById('aiBlogsStatus');
+const aiGenerateNow  = document.getElementById('aiGenerateNow');
+const aiBlogsRefresh = document.getElementById('aiBlogsRefresh');
+
+let aiPending = [];
+
+function showAiStatus(msg, type = 'info') {
+  if (!aiBlogsStatus) return;
+  aiBlogsStatus.textContent = msg;
+  aiBlogsStatus.className = `ai-blogs__status ai-blogs__status--${type}`;
+  aiBlogsStatus.hidden = false;
+  if (type === 'success' || type === 'error') {
+    setTimeout(() => { aiBlogsStatus.hidden = true; }, 5000);
+  }
+}
+
+async function loadAiPending() {
+  const q = query(collection(db, 'blogs'), where('status', '==', 'pending'), orderBy('createdAt', 'desc'));
+  const snap = await getDocs(q);
+  aiPending = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+function buildAiCard(item) {
+  const tagLabel = tagLabelMap.blogs?.get(item.tag) || item.tag || '';
+  const model = item.aiMeta?.model || 'AI';
+  const headlines = (item.aiMeta?.sourceHeadlines || []).slice(0, 3);
+  const sourceChips = headlines.length
+    ? `<div class="ai-card__sources">${headlines.map(h => `<span class="ai-card__chip">${escapeHtml(h)}</span>`).join('')}</div>`
+    : '';
+  return `<div class="ai-card" data-id="${item.id}">
+    <div class="ai-card__body">
+      <div class="ai-card__meta">
+        <span class="ai-card__tag">${escapeHtml(tagLabel)}</span>
+        <span class="ai-card__model">${escapeHtml(model)}</span>
+      </div>
+      <p class="ai-card__title">${escapeHtml(item.title || '')}</p>
+      <p class="ai-card__summary">${escapeHtml(item.summary || '')}</p>
+      ${sourceChips}
+    </div>
+    <div class="ai-card__actions">
+      <button class="btn btn--primary ai-card__btn" data-action="approve" data-id="${item.id}">Approve</button>
+      <button class="btn btn--ghost ai-card__btn" data-action="regenerate" data-id="${item.id}">Regenerate</button>
+      <button class="btn btn--danger ai-card__btn" data-action="reject" data-id="${item.id}">Reject</button>
+    </div>
+  </div>`;
+}
+
+function renderAiBlogs() {
+  if (!aiBlogsGrid) return;
+  if (aiPending.length === 0) {
+    aiBlogsGrid.innerHTML = '';
+    if (aiBlogsEmpty) aiBlogsEmpty.hidden = false;
+    return;
+  }
+  if (aiBlogsEmpty) aiBlogsEmpty.hidden = true;
+  aiBlogsGrid.innerHTML = aiPending.map(buildAiCard).join('');
+
+  // Open full preview when the card body is clicked.
+  aiBlogsGrid.querySelectorAll('.ai-card__body').forEach((el, i) => {
+    el.addEventListener('click', () => openDetailModal('blogs', aiPending[i]));
+  });
+
+  aiBlogsGrid.querySelectorAll('.ai-card__btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      handleAiAction(btn.dataset.action, btn.dataset.id);
+    });
+  });
+}
+
+async function approveAiPost(id) {
+  await updateDoc(doc(db, 'blogs', id), { status: 'published', createdAt: serverTimestamp() });
+  const approved = aiPending.find(p => p.id === id);
+  aiPending = aiPending.filter(p => p.id !== id);
+  // Reflect it in the published Blog Posts panel/stat immediately.
+  if (approved) {
+    data.blogs.unshift({ ...approved, status: 'published' });
+    updateStats();
+    if (activeType === 'blogs') renderPanel('blogs');
+  }
+  renderAiBlogs();
+  showAiStatus('Post approved and published.', 'success');
+}
+
+async function enqueueGeneration(action, docId) {
+  const user = auth.currentUser;
+  await addDoc(collection(db, 'generationRequests'), {
+    action,
+    docId: docId || null,
+    requestedBy: user?.email || 'unknown',
+    processed: false,
+    createdAt: serverTimestamp(),
+  });
+}
+
+async function handleAiAction(action, id) {
+  if (action === 'approve') {
+    try {
+      await approveAiPost(id);
+    } catch (err) {
+      console.error('Approve failed', err);
+      showAiStatus('Could not publish the post.', 'error');
+    }
+  } else if (action === 'reject') {
+    // Reuse the shared confirm-delete modal.
+    pendingDelete = { kind: 'aiPending', id };
+    if (delMsgEl) delMsgEl.textContent = 'Reject and delete this AI draft? This cannot be undone.';
+    delModal.hidden = false;
+  } else if (action === 'regenerate') {
+    try {
+      await enqueueGeneration('regenerate', id);
+      // Optimistically drop the old draft from view; the poller deletes it server-side.
+      aiPending = aiPending.filter(p => p.id !== id);
+      renderAiBlogs();
+      showAiStatus('Regeneration requested — a new draft appears in ~1-5 min. Use Refresh.', 'info');
+    } catch (err) {
+      console.error('Regenerate failed', err);
+      showAiStatus('Could not request regeneration.', 'error');
+    }
+  }
+}
+
+async function initAiBlogsSection() {
+  if (!aiBlogsGrid) return;
+  try {
+    await loadAiPending();
+    renderAiBlogs();
+  } catch (err) {
+    console.error('Failed to load AI drafts', err);
+    showAiStatus('Could not load AI drafts (a Firestore index may still be building).', 'error');
+  }
+
+  if (aiGenerateNow) {
+    aiGenerateNow.addEventListener('click', async () => {
+      aiGenerateNow.disabled = true;
+      const orig = aiGenerateNow.innerHTML;
+      aiGenerateNow.textContent = 'Requesting…';
+      try {
+        await enqueueGeneration('generate');
+        showAiStatus('Generation started — a new draft appears in ~1-5 min. Use Refresh.', 'info');
+      } catch (err) {
+        console.error('Generate request failed', err);
+        showAiStatus('Could not start generation.', 'error');
+      } finally {
+        aiGenerateNow.disabled = false;
+        aiGenerateNow.innerHTML = orig;
+      }
+    });
+  }
+
+  if (aiBlogsRefresh) {
+    aiBlogsRefresh.addEventListener('click', async () => {
+      aiBlogsRefresh.disabled = true;
+      try {
+        await loadAiPending();
+        renderAiBlogs();
+        showAiStatus(`${aiPending.length} draft${aiPending.length !== 1 ? 's' : ''} awaiting review.`, 'info');
+      } catch (err) {
+        console.error('Refresh failed', err);
+        showAiStatus('Refresh failed.', 'error');
+      } finally {
+        aiBlogsRefresh.disabled = false;
+      }
+    });
+  }
 }
 
 document.getElementById('signOutBtn').addEventListener('click', signOut);

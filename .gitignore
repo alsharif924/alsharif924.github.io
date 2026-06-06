@@ -1,0 +1,21 @@
+# Secrets — NEVER commit these. They live in GitHub Actions secrets only.
+.env
+.env.*
+*serviceAccount*.json
+*service-account*.json
+*firebase-adminsdk*.json
+*-adminsdk-*.json
+
+# Firebase CLI noise
+firebase-debug.log
+*firebase-debug*.log
+.firebase/
+
+# Node (backend generator only — the static site has no build step)
+node_modules/
+scripts/generate-blog/node_modules/
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db

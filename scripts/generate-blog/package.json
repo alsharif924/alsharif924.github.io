@@ -1,0 +1,19 @@
+{
+  "name": "ai-blog-generator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Daily AI-news blog post generator. Runs server-side in GitHub Actions; the AI key and Firebase service account live in CI secrets, never in the static site.",
+  "type": "module",
+  "main": "generate.js",
+  "scripts": {
+    "generate": "node generate.js",
+    "poll": "node poll.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.69.0",
+    "firebase-admin": "^13.0.0"
+  }
+}
