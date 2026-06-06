@@ -98,6 +98,12 @@ function gradientIndex(item) {
   return (h % 4) + 1;
 }
 
+// Manager page shows the ARABIC version of blog text (falling back to English
+// when a post has no Arabic — e.g. older or manual posts).
+function blogField(item, name) {
+  return item[name + '_ar'] || item[name] || '';
+}
+
 function blogCoverHtml(item, ratioClass, tagLabel) {
   const url = getImg('blogs', item);
   if (url) {
@@ -122,8 +128,8 @@ function buildCard(type, item) {
       ${blogCoverHtml(item, 'panel-item__img--wide', tagLabel)}
       <div class="panel-item__body">
         <span class="panel-item__tag">${tagLabel}</span>
-        <p class="panel-item__title">${item.title}</p>
-        <p class="panel-item__meta">${item.summary || ''}</p>
+        <p class="panel-item__title" dir="auto">${blogField(item, 'title')}</p>
+        <p class="panel-item__meta" dir="auto">${blogField(item, 'summary')}</p>
       </div>
       ${trashBtn}
     </div>`;
@@ -174,14 +180,20 @@ function openDetailModal(type, item) {
 
   const tagLabel = tagLabelMap[type]?.get(item.tag) || item.tag || '';
   detailTag.textContent   = tagLabel;
-  detailTitle.textContent = item.title;
-  detailDesc.textContent  = type === 'blogs' ? (item.summary || '') : (item.description || '');
+  detailTitle.textContent = type === 'blogs' ? blogField(item, 'title') : item.title;
+  detailDesc.textContent  = type === 'blogs' ? blogField(item, 'summary') : (item.description || '');
+  // Auto-detect direction so Arabic blog text renders RTL in the modal.
+  const blogDir = type === 'blogs' ? 'auto' : '';
+  detailTitle.setAttribute('dir', blogDir);
+  detailDesc.setAttribute('dir', blogDir);
 
   detailExtra.innerHTML = '';
-  if (type === 'blogs' && item.content) {
-    const paragraphs = item.content.split(/\n\n+/).filter(Boolean);
+  const blogBody = type === 'blogs' ? blogField(item, 'content') : '';
+  if (type === 'blogs' && blogBody) {
+    const paragraphs = blogBody.split(/\n\n+/).filter(Boolean);
     paragraphs.forEach(pText => {
       const pEl = document.createElement('p');
+      pEl.setAttribute('dir', 'auto');
       pText.split('\n').forEach((line, idx, arr) => {
         pEl.appendChild(document.createTextNode(line));
         if (idx < arr.length - 1) pEl.appendChild(document.createElement('br'));
@@ -601,8 +613,8 @@ function buildAiCard(item) {
         <span class="ai-card__tag">${escapeHtml(tagLabel)}</span>
         <span class="ai-card__model">${escapeHtml(model)}</span>
       </div>
-      <p class="ai-card__title">${escapeHtml(item.title || '')}</p>
-      <p class="ai-card__summary">${escapeHtml(item.summary || '')}</p>
+      <p class="ai-card__title" dir="auto">${escapeHtml(blogField(item, 'title'))}</p>
+      <p class="ai-card__summary" dir="auto">${escapeHtml(blogField(item, 'summary'))}</p>
       ${sourceChips}
     </div>
     <div class="ai-card__actions">
