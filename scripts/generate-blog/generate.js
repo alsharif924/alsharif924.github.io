@@ -127,6 +127,16 @@ function validatePost(post, categorySlugs) {
   if (!Array.isArray(post.sourceHeadlines)) post.sourceHeadlines = [];
   if (!Array.isArray(post.sourceUrls)) post.sourceUrls = [];
   if (errs.length) throw new Error(`Invalid post: ${errs.join(', ')}`);
+
+  // Arabic fields: fall back to the English value if missing, so the doc is always
+  // consistent. Apply the same length guards to the Arabic title/summary.
+  post.title_ar = (typeof post.title_ar === 'string' && post.title_ar.trim())
+    ? post.title_ar.trim().slice(0, 120) : post.title;
+  post.summary_ar = (typeof post.summary_ar === 'string' && post.summary_ar.trim())
+    ? post.summary_ar.trim().slice(0, 200) : (post.summary || '');
+  post.content_ar = (typeof post.content_ar === 'string' && post.content_ar.trim())
+    ? post.content_ar.trim() : post.content;
+
   return post;
 }
 
@@ -169,10 +179,13 @@ export async function generateAndStore(db) {
 
   const docRef = await db.collection('blogs').add({
     title: post.title.trim(),
-    tag: post.tag,
-    orientation: 'landscape',
     summary: (post.summary || '').trim(),
     content: post.content.trim(),
+    title_ar: post.title_ar,
+    summary_ar: post.summary_ar,
+    content_ar: post.content_ar,
+    tag: post.tag,
+    orientation: 'landscape',
     coverUrl: '',
     coverMediaType: 'image',
     status: 'pending',

@@ -1,6 +1,6 @@
 import { db } from '../../shared/js/firebase-config.js';
 import { collection, getDocs, query, where, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { getCategories, renderFilterButtons, labelOf } from '../../shared/js/categories.js';
+import { getCategories, renderFilterButtons, labelOf, getLang } from '../../shared/js/categories.js';
 import { getHomeSettings, getCachedHomeSettings } from '../../shared/js/settings.js';
 
 function setCover(id, url) {
@@ -84,6 +84,12 @@ prevBtn.addEventListener('click', () => { if (currentIndex > 0) { currentIndex--
 nextBtn.addEventListener('click', () => { if (currentIndex < getMaxIndex()) { currentIndex++; updateTrack(); } });
 window.addEventListener('resize', () => { currentIndex = Math.min(currentIndex, getMaxIndex()); updateTrack(); });
 
+// Pick a blog field in the current language, falling back to English when the
+// Arabic version is missing (e.g. older posts created before bilingual support).
+function field(item, name) {
+  return (getLang() === 'ar' && item[name + '_ar']) ? item[name + '_ar'] : item[name];
+}
+
 function openBlogModal(item) {
   blogModalCover.innerHTML = '';
   if (item.coverMediaType === 'video' && item.coverUrl) {
@@ -93,10 +99,10 @@ function openBlogModal(item) {
     blogModalCover.style.backgroundImage = item.coverUrl ? `url('${item.coverUrl}')` : '';
   }
   blogModalTag.textContent     = tagLabel(item.tag);
-  blogModalTitle.textContent   = item.title;
-  blogModalSummary.textContent = item.summary || '';
+  blogModalTitle.textContent   = field(item, 'title');
+  blogModalSummary.textContent = field(item, 'summary') || '';
   blogModalContent.innerHTML   = '';
-  const paragraphs = (item.content || '').split(/\n\n+/).filter(Boolean);
+  const paragraphs = (field(item, 'content') || '').split(/\n\n+/).filter(Boolean);
   paragraphs.forEach(pText => {
     const pEl = document.createElement('p');
     const lines = pText.split('\n');
@@ -135,8 +141,8 @@ function buildInsightCard(item) {
     <div class="insight-card__image" ${bgStyle}></div>
     <div class="insight-card__body">
       <span class="insight-card__tag">${tagLabel(item.tag)}</span>
-      <h3 class="insight-card__title">${item.title}</h3>
-      <p class="insight-card__text">${item.summary || ''}</p>
+      <h3 class="insight-card__title">${field(item, 'title')}</h3>
+      <p class="insight-card__text">${field(item, 'summary') || ''}</p>
     </div>
   </article>`;
 }
