@@ -16,9 +16,11 @@ Worker only holds a GitHub token scoped to triggering this one repo's Actions.
 
 ### 1. Create a GitHub fine-grained token
 GitHub → Settings → Developer settings → **Fine-grained tokens** → Generate new token.
-- **Resource owner:** your account (`alsharif924`)
+- **Resource owner:** the account that owns the repo (`alsharif924`)
 - **Repository access:** Only select repositories → `alsharif924.github.io`
-- **Permissions:** Repository permissions → **Actions: Read and write**
+- **Permissions:** Repository permissions → **Contents: Read and write**
+  (the `repository_dispatch` endpoint is gated by **Contents**, not Actions —
+  a token with only Actions returns `403 Resource not accessible`).
 - Generate and copy the token (starts with `github_pat_...`).
 
 ### 2. Deploy the Worker
