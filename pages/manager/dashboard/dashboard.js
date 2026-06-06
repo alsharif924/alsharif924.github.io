@@ -536,6 +536,10 @@ const aiBlogsStatus  = document.getElementById('aiBlogsStatus');
 const aiGenerateNow  = document.getElementById('aiGenerateNow');
 const aiBlogsRefresh = document.getElementById('aiBlogsRefresh');
 
+// Cloudflare Worker that verifies the admin and fires the GitHub workflow instantly.
+// Set this to your deployed Worker URL (e.g. https://ai-blog-trigger.<you>.workers.dev).
+const TRIGGER_WORKER_URL = 'https://ai-blog-trigger.alsharif924.workers.dev';
+
 let aiPending = [];
 
 function showAiStatus(msg, type = 'info') {
@@ -618,10 +622,30 @@ async function approveAiPost(id) {
 
 async function enqueueGeneration(action, docId) {
   const user = auth.currentUser;
+  if (!user) throw new Error('Not signed in.');
+
+  // Preferred: instant trigger via the Cloudflare Worker (verifies the ID token,
+  // fires the GitHub workflow). Falls back to the Firestore request queue (drained
+  // by the 5-min poller) if the Worker URL isn't configured or is unreachable.
+  if (TRIGGER_WORKER_URL && !TRIGGER_WORKER_URL.includes('<')) {
+    const idToken = await user.getIdToken();
+    const res = await fetch(TRIGGER_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${idToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, docId: docId || null }),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`Trigger failed (${res.status}). ${detail.slice(0, 120)}`);
+    }
+    return;
+  }
+
+  // Fallback queue.
   await addDoc(collection(db, 'generationRequests'), {
     action,
     docId: docId || null,
-    requestedBy: user?.email || 'unknown',
+    requestedBy: user.email || 'unknown',
     processed: false,
     createdAt: serverTimestamp(),
   });
@@ -646,7 +670,7 @@ async function handleAiAction(action, id) {
       // Optimistically drop the old draft from view; the poller deletes it server-side.
       aiPending = aiPending.filter(p => p.id !== id);
       renderAiBlogs();
-      showAiStatus('Regeneration requested — a new draft appears in ~1-5 min. Use Refresh.', 'info');
+      showAiStatus('Regeneration started — a new draft appears in ~1-2 min. Use Refresh.', 'info');
     } catch (err) {
       console.error('Regenerate failed', err);
       showAiStatus('Could not request regeneration.', 'error');
@@ -671,7 +695,7 @@ async function initAiBlogsSection() {
       aiGenerateNow.textContent = 'Requesting…';
       try {
         await enqueueGeneration('generate');
-        showAiStatus('Generation started — a new draft appears in ~1-5 min. Use Refresh.', 'info');
+        showAiStatus('Generation started — a new draft appears in ~1-2 min. Use Refresh.', 'info');
       } catch (err) {
         console.error('Generate request failed', err);
         showAiStatus('Could not start generation.', 'error');

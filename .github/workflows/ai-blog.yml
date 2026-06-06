@@ -12,9 +12,11 @@ on:
   schedule:
     # Daily at 06:00 UTC. Adjust to your preferred local morning.
     - cron: '0 6 * * *'
-    # Every 5 minutes: pick up manual "Generate now" / "Regenerate" requests.
+    # Fallback: pick up manual requests if the Worker path isn't used.
     - cron: '*/5 * * * *'
   workflow_dispatch: {}   # manual run from the Actions tab
+  repository_dispatch:    # instant "Generate now" / "Regenerate" from the Cloudflare Worker
+    types: [generate-blog]
 
 # Avoid overlapping runs writing posts at the same time.
 concurrency:
@@ -46,10 +48,21 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: node poll.js
 
+      # Daily cron + manual "Run workflow" button.
       - name: Generate daily post
-        if: github.event.schedule != '*/5 * * * *'
+        if: github.event_name == 'schedule' && github.event.schedule == '0 6 * * *' || github.event_name == 'workflow_dispatch'
         working-directory: scripts/generate-blog
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node generate.js
+
+      # Instant "Generate now" / "Regenerate" fired by the Cloudflare Worker.
+      - name: Generate from dispatch
+        if: github.event_name == 'repository_dispatch'
+        working-directory: scripts/generate-blog
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          REGENERATE_DOC_ID: ${{ github.event.client_payload.action == 'regenerate' && github.event.client_payload.docId || '' }}
         run: node generate.js

@@ -195,7 +195,16 @@ export async function generateAndStore(db) {
 const isMain = import.meta.url === `file://${process.argv[1]}` ||
                process.argv[1]?.endsWith('generate.js');
 if (isMain) {
-  generateAndStore(initFirestore())
+  (async () => {
+    const db = initFirestore();
+    // Regenerate path: delete the rejected draft first, then generate a fresh one.
+    const regenId = process.env.REGENERATE_DOC_ID;
+    if (regenId) {
+      await db.collection('blogs').doc(regenId).delete().catch(() => {});
+      console.log(`Deleted draft ${regenId} before regenerating.`);
+    }
+    await generateAndStore(db);
+  })()
     .then(() => process.exit(0))
     .catch(err => {
       console.error('Generation failed:', err);

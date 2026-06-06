@@ -1,0 +1,14 @@
+name = "ai-blog-trigger"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Non-secret config. Edit these to match your project, then deploy.
+[vars]
+FIREBASE_PROJECT_ID = "website-61d2a"
+GITHUB_OWNER = "alsharif924"
+GITHUB_REPO = "alsharif924.github.io"
+ALLOWED_EMAILS = "ali.s23ultra.1@gmail.com,faresayman12316@gmail.com,ali.d.sh.2001@gmail.com"
+ALLOWED_ORIGIN = "https://alsharif924.github.io"
+
+# Secret (do NOT put here — set with: npx wrangler secret put GITHUB_DISPATCH_TOKEN):
+#   GITHUB_DISPATCH_TOKEN   fine-grained PAT, Actions: Read and write, this repo only

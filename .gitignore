@@ -11,6 +11,10 @@ firebase-debug.log
 *firebase-debug*.log
 .firebase/
 
+# Cloudflare Worker local secrets
+worker/.dev.vars
+.wrangler/
+
 # Node (backend generator only — the static site has no build step)
 node_modules/
 scripts/generate-blog/node_modules/
