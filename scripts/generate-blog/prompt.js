@@ -15,13 +15,18 @@ Rules:
 
 Output format — when you are done researching, return ONLY a single JSON object (no prose before or after, no markdown code fences) with exactly these fields:
 {
-  "title": string,            // <= 120 characters, specific and descriptive
-  "summary": string,          // <= 200 characters, one or two sentences, the post's hook
-  "content": string,          // 3-5 short paragraphs separated by a blank line (\\n\\n). Plain text, no markdown headings or links.
+  "title": string,            // English. <= 120 characters, specific and descriptive
+  "summary": string,          // English. <= 200 characters, one or two sentences, the post's hook
+  "content": string,          // English. 3-5 short paragraphs separated by a blank line (\\n\\n). Plain text, no markdown headings or links.
+  "title_ar": string,         // Arabic translation of "title". <= 120 characters.
+  "summary_ar": string,       // Arabic translation of "summary". <= 200 characters.
+  "content_ar": string,       // Arabic translation of "content". Keep the SAME paragraph breaks (\\n\\n).
   "tag": string,              // EXACTLY one of the allowed category slugs provided in the user message
   "sourceHeadlines": string[],// 1-4 real headlines/topics you based this on
   "sourceUrls": string[]      // the source URLs you used (from search results)
 }
+
+The "_ar" fields must be a natural, fluent Modern Standard Arabic translation that conveys the same meaning as the English version — NOT transliteration, and not machine-literal. Keep technical product/model names in their original form where that is how Arabic readers refer to them.
 
 If after searching there is no genuinely novel, verifiable development that isn't already covered, return exactly: {"skip": true, "reason": "<short reason>"}`;
 
