@@ -35,16 +35,25 @@ If after searching there is no genuinely novel, verifiable development that isn'
  * @param {string} todayISO  e.g. "2026-06-03"
  * @param {string[]} categorySlugs  live blog category slugs the model may choose from
  * @param {{titles:string[], headlines:string[], urls:string[]}} exclusions
+ * @param {string|null} preferredTag  the "AI News" slug to default to (if it exists)
  */
-export function buildUserMessage(todayISO, categorySlugs, exclusions) {
+export function buildUserMessage(todayISO, categorySlugs, exclusions, preferredTag) {
   const slugList = categorySlugs.length ? categorySlugs.join(', ') : 'AI IMAGE, AI VIDEO, SMART SYSTEMS';
   const lines = [
     `Today is ${todayISO}. Find and write today's AI-field news post.`,
     '',
     `Allowed category slugs (choose the single best fit for "tag"): ${slugList}`,
-    '',
-    'ALREADY COVERED — do NOT write about any of these topics again:',
   ];
+  if (preferredTag) {
+    lines.push(
+      '',
+      `For "tag", use "${preferredTag}" for these daily AI-news posts. Only choose a different slug if the post is specifically and primarily about that other category (e.g. an AI image-generation tool, an AI video tool, or a smart-systems product).`
+    );
+  }
+  lines.push(
+    '',
+    'ALREADY COVERED — do NOT write about any of these topics again:'
+  );
 
   if (exclusions.titles.length) {
     lines.push('Recent post titles:');
