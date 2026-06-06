@@ -90,13 +90,42 @@ function field(item, name) {
   return (getLang() === 'ar' && item[name + '_ar']) ? item[name + '_ar'] : item[name];
 }
 
+// Deterministic gradient (1-4) per post so cover-less cards look intentional and
+// varied rather than identical. Keyed on tag + title so the same post is stable.
+function gradientIndex(item) {
+  const s = `${item.tag || ''}${item.title || ''}`;
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return (h % 4) + 1;
+}
+
+// SVG sparkle/article mark shown on cover-less cards.
+const NO_COVER_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z"/><path d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9L18 14z"/></svg>`;
+
+// Inner HTML for the image area when there is no cover photo.
+function noCoverInner(item) {
+  return `<div class="insight-card__nocover">
+    <span class="insight-card__nocover-icon">${NO_COVER_ICON}</span>
+    <span class="insight-card__nocover-tag">${tagLabel(item.tag)}</span>
+  </div>`;
+}
+
 function openBlogModal(item) {
   blogModalCover.innerHTML = '';
+  blogModalCover.className = 'blog-modal__cover';
   if (item.coverMediaType === 'video' && item.coverUrl) {
     blogModalCover.style.backgroundImage = '';
     blogModalCover.innerHTML = `<video src="${item.coverUrl}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;border-radius:18px 18px 0 0;display:block;"></video>`;
+  } else if (item.coverUrl) {
+    blogModalCover.style.backgroundImage = `url('${item.coverUrl}')`;
   } else {
-    blogModalCover.style.backgroundImage = item.coverUrl ? `url('${item.coverUrl}')` : '';
+    // No cover: branded gradient panel with the post's category + icon.
+    blogModalCover.style.backgroundImage = '';
+    blogModalCover.classList.add(`blog-modal__cover--grad${gradientIndex(item)}`);
+    blogModalCover.innerHTML = `<div class="blog-modal__nocover">
+      <span class="blog-modal__nocover-icon">${NO_COVER_ICON}</span>
+      <span class="blog-modal__nocover-tag">${tagLabel(item.tag)}</span>
+    </div>`;
   }
   blogModalTag.textContent     = tagLabel(item.tag);
   blogModalTitle.textContent   = field(item, 'title');
@@ -134,11 +163,11 @@ function buildInsightCard(item) {
   if (item.coverMediaType === 'video' && thumbUrl) {
     thumbUrl = cloudinaryFirstFrame(thumbUrl) || thumbUrl;
   }
-  const bgStyle = thumbUrl
-    ? `style="background-image:url('${thumbUrl}');background-size:cover;background-position:center;"`
-    : '';
+  const imageHtml = thumbUrl
+    ? `<div class="insight-card__image" style="background-image:url('${thumbUrl}');background-size:cover;background-position:center;"></div>`
+    : `<div class="insight-card__image insight-card__image--grad${gradientIndex(item)}">${noCoverInner(item)}</div>`;
   return `<article class="insight-card" style="cursor:pointer;">
-    <div class="insight-card__image" ${bgStyle}></div>
+    ${imageHtml}
     <div class="insight-card__body">
       <span class="insight-card__tag">${tagLabel(item.tag)}</span>
       <h3 class="insight-card__title">${field(item, 'title')}</h3>

@@ -109,6 +109,20 @@ body { font-family: var(--font); background: var(--color-bg); color: var(--color
 .panel-item__img { width:100%; aspect-ratio:3/4; object-fit:cover; display:block; background:var(--color-blue-light); }
 .panel-item__img--wide { aspect-ratio:16/9; }
 .panel-item__img--land { aspect-ratio:4/3; }
+
+/* No-cover gradient placeholder (blog posts without a photo) */
+.panel-item__nocover { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:rgba(255,255,255,.95); background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1px); background-size:16px 16px; }
+.panel-item__nocover-icon svg { width:30px; height:30px; opacity:.92; }
+.panel-item__nocover-tag { font-size:.62rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:3px 10px; border-radius:20px; background:rgba(255,255,255,.18); }
+.panel-item__nocover--grad1 { background-color:#0d1b3e; background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(135deg,#0d1b3e 0%,#3b6bdc 100%); }
+.panel-item__nocover--grad2 { background-color:#102a52; background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(135deg,#102a52 0%,#2aabab 100%); }
+.panel-item__nocover--grad3 { background-color:#1a1a3e; background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(135deg,#1a1a3e 0%,#6b3bdc 100%); }
+.panel-item__nocover--grad4 { background-color:#0d2a3e; background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(135deg,#0d2a3e 0%,#1a4a6e 100%); }
+
+/* No-cover placeholder inside the detail modal */
+.detail-modal__nocover { width:100%; aspect-ratio:16/9; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:rgba(255,255,255,.95); border-radius:18px 18px 0 0; background-size:18px 18px; }
+.detail-modal__nocover .panel-item__nocover-icon svg { width:46px; height:46px; }
+.detail-modal__nocover .panel-item__nocover-tag { font-size:.72rem; }
 .panel-item__img--portrait { aspect-ratio:9/16; max-height:360px; width:auto; margin:0 auto; }
 
 .panel-item__body { padding:10px 12px 12px; }
