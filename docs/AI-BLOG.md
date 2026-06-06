@@ -52,7 +52,19 @@ firebase deploy --only firestore:rules,firestore:indexes --project website-61d2a
 > [`shared/js/firebase-auth.js`](../shared/js/firebase-auth.js) (`ALLOWED`) and
 > [`firestore.rules`](../firestore.rules) (`isAdmin()`).
 
-### 5. Firestore composite indexes
+### 5. Backfill `status` on existing posts (one-time)
+The public home page queries `where('status','==','published')`. Posts created
+before this feature have no `status` field and would disappear from the public
+site until backfilled. Run once:
+
+```bash
+cd scripts/generate-blog
+FIREBASE_SERVICE_ACCOUNT="$(cat path/to/serviceAccount.json)" node backfill-status.js
+```
+
+Safe to re-run — it only touches posts missing `status`.
+
+### 6. Firestore composite indexes
 `firestore.indexes.json` defines the two indexes the dashboard/poller queries need
 (`blogs`: status + createdAt; `generationRequests`: processed + createdAt). The
 `firebase deploy` above creates them. If you ever see an index error in the console,
@@ -92,7 +104,7 @@ Dashboard → **AI Blogs** section:
 
 | Field | Meaning |
 |---|---|
-| `status` | `'pending'` (AI draft, hidden) or `'published'`. Legacy posts have no field → treated as published. |
+| `status` | `'pending'` (AI draft, hidden) or `'published'` (public). All posts must have this — legacy ones are backfilled (setup step 5). |
 | `aiGenerated` | `true` for AI posts (manual posts omit it). |
 | `aiMeta` | `{ model, generatedAt, sourceHeadlines[], sourceUrls[], contentHash }` — display + dedupe. |
 

@@ -1,5 +1,5 @@
 import { db } from '../../shared/js/firebase-config.js';
-import { collection, getDocs, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { collection, getDocs, query, where, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getCategories, renderFilterButtons, labelOf } from '../../shared/js/categories.js';
 import { getHomeSettings, getCachedHomeSettings } from '../../shared/js/settings.js';
 
@@ -171,14 +171,18 @@ async function loadInsights() {
   if (insightsFilters) {
     await renderFilterButtons(insightsFilters, 'blogs', { onChange: applyInsightFilter, allKey: 'blogs.filter.all' });
   }
-  // Fetch extra, then drop pending AI drafts (legacy posts have no status -> shown).
-  // Security is enforced by Firestore rules; this filter is for display correctness.
-  const snap = await getDocs(query(collection(db, 'blogs'), orderBy('createdAt', 'desc'), limit(48)));
+  // Only published posts. Firestore rejects a list query that could return docs
+  // the rules forbid (pending drafts), so we must filter in the query itself — a
+  // client-side filter would fail the whole query for logged-out visitors.
+  // Requires every post to have status:'published' (legacy posts are backfilled).
+  const snap = await getDocs(query(
+    collection(db, 'blogs'),
+    where('status', '==', 'published'),
+    orderBy('createdAt', 'desc'),
+    limit(24),
+  ));
   if (!snap.empty) {
-    allInsights = snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .filter(d => d.status !== 'pending')
-      .slice(0, 24);
+    allInsights = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderTrack();
   } else {
     updateTrack();
