@@ -5,7 +5,7 @@
 //      bypasses Firestore rules, so it can write `status: 'pending'` drafts that
 //      the public can never read.
 //   2. Read recent blogs -> build a "do not repeat" list.
-//   3. Ask Claude (with the web_search tool) for ONE fresh AI-news post as JSON.
+//   3. Ask Claude (with the web_search tool) for ONE post about a fresh AI tool as JSON.
 //   4. Dedupe guard, then write a pending draft to the `blogs` collection.
 //
 // Secrets (env, never in the browser):

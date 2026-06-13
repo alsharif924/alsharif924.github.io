@@ -1,6 +1,6 @@
 # AI Blog Generator — Setup & Operations
 
-The site automatically writes one blog post per day about the latest AI-field news,
+The site automatically writes one blog post per day about a recently launched or updated AI tool,
 saves it as a hidden **pending** draft, and lets an admin **Approve / Reject / Regenerate**
 it from the dashboard. This doc covers setup, security, and operations.
 
@@ -15,7 +15,7 @@ the browser.
 ```
 GitHub Actions (daily cron + manual)         Firestore `blogs`            Site
   scripts/generate-blog/generate.js  ──write──►  status:'pending'  ──read──►  Dashboard "AI Blogs"
-   • Claude + web_search (real news)              (hidden from public)         Approve / Reject / Regenerate
+   • Claude + web_search (real tools)             (hidden from public)         Approve / Reject / Regenerate
    • dedupe vs recent posts                                                    Approve → status:'published'
    • Admin SDK (bypasses rules)                   status:'published' ──read──► Public home carousel
 ```

@@ -5,13 +5,13 @@
 // slugs) goes in the user message, after the cached prefix.
 
 // Stable system prompt — keep this byte-identical across runs for cache hits.
-export const SYSTEM_PROMPT = `You are the staff writer for an AI studio's blog. Each day you publish ONE short, accurate post about the most important recent development in the AI field.
+export const SYSTEM_PROMPT = `You are the staff writer for an AI studio's blog. Each day you publish ONE short, accurate post about a recently launched or updated AI tool — an app, product, model, or feature that people can actually use.
 
 Rules:
-- Use the web_search tool to find REAL, recent AI news (last 24-48 hours). Never invent news, products, model names, dates, or quotes. Only write about things you verified through search results.
-- Pick the single most significant, genuinely new development. Prefer concrete launches/research/policy over vague trend pieces.
-- Write for a general-but-curious audience: clear, engaging, no hype, no marketing fluff, no emojis.
-- The post must be original — do not rewrite or duplicate any topic in the provided "already covered" list.
+- Use the web_search tool to find a REAL, recently launched or updated AI tool or feature (last few days to weeks). Never invent tools, products, model names, features, prices, dates, or quotes. Only write about things you verified through search results.
+- Pick the single most noteworthy AI tool launch or update. Focus on usable tools (e.g. an AI image or video generator, a coding assistant, a writing/automation app, a new feature inside an existing tool). EXCLUDE non-tool news such as funding rounds, policy/regulation, executive or hiring moves, research papers with no usable tool, and opinion/trend pieces.
+- Write for a general-but-curious audience: clear, engaging, no hype, no marketing fluff, no emojis. Explain what the tool does, who it's for, and what you can do with it.
+- The post must be original — do not rewrite or duplicate any tool already in the provided "already covered" list.
 
 Output format — when you are done researching, return ONLY a single JSON object (no prose before or after, no markdown code fences) with exactly these fields:
 {
@@ -28,7 +28,7 @@ Output format — when you are done researching, return ONLY a single JSON objec
 
 The "_ar" fields must be a natural, fluent Modern Standard Arabic translation that conveys the same meaning as the English version — NOT transliteration, and not machine-literal. Keep technical product/model names in their original form where that is how Arabic readers refer to them.
 
-If after searching there is no genuinely novel, verifiable development that isn't already covered, return exactly: {"skip": true, "reason": "<short reason>"}`;
+If after searching there is no genuinely new or updated AI tool worth covering that isn't already covered, return exactly: {"skip": true, "reason": "<short reason>"}`;
 
 /**
  * Build the user message for a generation run.
@@ -40,19 +40,19 @@ If after searching there is no genuinely novel, verifiable development that isn'
 export function buildUserMessage(todayISO, categorySlugs, exclusions, preferredTag) {
   const slugList = categorySlugs.length ? categorySlugs.join(', ') : 'AI IMAGE, AI VIDEO, SMART SYSTEMS';
   const lines = [
-    `Today is ${todayISO}. Find and write today's AI-field news post.`,
+    `Today is ${todayISO}. Find and write today's post about a newly launched or updated AI tool.`,
     '',
     `Allowed category slugs (choose the single best fit for "tag"): ${slugList}`,
   ];
   if (preferredTag) {
     lines.push(
       '',
-      `For "tag", use "${preferredTag}" for these daily AI-news posts. Only choose a different slug if the post is specifically and primarily about that other category (e.g. an AI image-generation tool, an AI video tool, or a smart-systems product).`
+      `For "tag", default to "${preferredTag}" for these daily AI-tool posts. Choose a more specific slug only when the tool clearly belongs to it (e.g. an AI image-generation tool → the image category, an AI video tool → the video category, a smart-systems product → that category).`
     );
   }
   lines.push(
     '',
-    'ALREADY COVERED — do NOT write about any of these topics again:'
+    'ALREADY COVERED — do NOT write about any of these tools again:'
   );
 
   if (exclusions.titles.length) {
@@ -69,7 +69,7 @@ export function buildUserMessage(todayISO, categorySlugs, exclusions, preferredT
 
   lines.push(
     '',
-    'Search for fresh developments, pick the most important one NOT in the list above, then return the JSON object as specified.'
+    'Search for recently launched or updated AI tools, pick the single most noteworthy one NOT already covered above, then return the JSON object as specified.'
   );
   return lines.join('\n');
 }
